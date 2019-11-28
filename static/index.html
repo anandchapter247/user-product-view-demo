@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <!-- Latest compiled and minified CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+    integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+  <!-- Optional theme -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css"
+    integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+  <!-- Latest compiled and minified JavaScript -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
+    integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
+    crossorigin="anonymous"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <script type="text/javascript">
+    google.charts.load('current', { 'packages': ['corechart'] });
+    // google.charts.setOnLoadCallback(() => drawVisualization(data));
+    function drawVisualization(statistics) {
+      // Some raw data (not necessarily accurate)
+      let statisticsData = [];
+      $.each(statistics, function (index, obj) {
+        statisticsData.push([obj._id.productName, Number(obj.totalViews), Number(obj.totalUniqueUsers)]);
+      });
+      var data = google.visualization.arrayToDataTable([
+        ['Month', 'Total Views', 'Unique Views'],
+        ...statisticsData,
+      ]);
+      var options = {
+        title: 'Product views',
+        vAxis: { title: 'No. of views' },
+        hAxis: { title: 'Product' },
+        seriesType: 'bars',
+      };
+      var chart = new google.visualization.ComboChart(document.getElementById('chart_div'));
+      chart.draw(data, options);
+    }
+  </script>
+</head>
+
+<body>
+  <div class="container">
+    <h3 class="mb-0 d-flex align-items-center">View Details</h3>
+    <div class="pr-0 pl-0 d-flex align-items-center">
+      <div class="col-sm-2">
+        <select class="form-control" id="selectId">
+          <option value="today">Today</option>
+          <option value="week">This week</option>
+          <option value="month">This month</option>
+          <option value="custom" class="daterange">Custom</option>
+        </select>
+      </div>
+      <div class='col-sm-4 input-group'>
+        <input type="text" class="form-control" name="daterange" />
+        <span class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span>
+      </div>
+      <div id="chart_div" style="width: 900px; height: 500px;"></div>
+      <script type="text/javascript">
+        const renderNodata = () => {
+          $("#chart_div").html(`<p class="text-center" style="margin-top: 50px;">No Data Found!</p>`);
+        }
+        const getData = (startDate, endDate) => {
+          $("#chart_div").html("")
+          $.ajax({
+            type: "GET",
+            url: "/api/product",
+            data: { "startDate": startDate, "endDate": endDate },
+            success: function (result) {
+              console.log(result.data);
+              result.data && result.data.length ?
+              google.charts.setOnLoadCallback(() => drawVisualization(result.data))
+              : renderNodata();
+            }
+          })
+        }
+        $(document).ready(() => {
+          getData(moment().format('YYYY-MM-DD'), moment().format('YYYY-MM-DD'))
+          $('input[name="daterange"]').daterangepicker({
+            opens: 'left',
+            alwaysShowCalendars: true
+          }, (start, end, label) => {
+            const startDate = moment(start).format('YYYY-MM-DD');
+            const endDate = moment(end).format('YYYY-MM-DD');
+            getData(startDate, endDate)
+          });
+          $('body').on('change', '#selectId', function () {
+            $('#show_selected').val(this.value);
+            $('.daterange').daterangepicker();
+            let startDate, endDate;
+            if (this.value !== 'custom') {
+              if (this.value === "week") {
+                startDate = moment().startOf('week').format('YYYY-MM-DD');
+                endDate = moment().endOf('week').format('YYYY-MM-DD');
+              }
+              if (this.value === "month") {
+                startDate = moment().startOf('month').format('YYYY-MM-DD');
+                endDate = moment().endOf('month').format('YYYY-MM-DD');
+              }
+              if (this.value === "today") {
+                startDate = moment().format('YYYY-MM-DD');
+              }
+              getData(startDate, endDate)
+            }
+          });
+        });
+      </script>
+    </div>
+  </div>
+</body>
+
+</html>
