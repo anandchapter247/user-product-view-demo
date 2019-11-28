@@ -47,3 +47,7 @@ node app.js
 ```
 
 <p>See code in action. Go to <a href="http://localhost:8000">localhost:8000</a></p>
+
+## Screenshot:
+
+<img src="./ss.png" />
